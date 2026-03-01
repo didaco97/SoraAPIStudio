@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sora 2 Studio</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080a0e;
+      --surface: #0f1218;
+      --surface2: #161b24;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-active: rgba(99, 179, 237, 0.5);
+      --accent: #63b3ed;
+      --accent2: #9f7aea;
+      --text: #e2e8f0;
+      --muted: #4a5568;
+      --muted2: #718096;
+      --danger: #fc8181;
+      --success: #68d391;
+      --glow: rgba(99, 179, 237, 0.15)
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 40% at 20% 10%, rgba(99, 179, 237, 0.06), transparent 60%), radial-gradient(ellipse 50% 50% at 80% 80%, rgba(159, 122, 234, 0.05), transparent 60%);
+      pointer-events: none;
+      z-index: 0
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px
+    }
+
+    header {
+      padding: 32px 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .lm {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff
+    }
+
+    .lt {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 17px
+    }
+
+    .lt span {
+      color: var(--muted2);
+      font-weight: 400
+    }
+
+    .badge {
+      background: rgba(99, 179, 237, 0.08);
+      border: 1px solid rgba(99, 179, 237, 0.2);
+      color: var(--accent);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start
+    }
+
+    @media(max-width:720px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .full {
+      grid-column: 1/-1
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 18px
+    }
+
+    .ch {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px
+    }
+
+    .ci {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px
+    }
+
+    .ct {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: .5px;
+      color: var(--muted2);
+      text-transform: uppercase
+    }
+
+    .f {
+      margin-bottom: 16px
+    }
+
+    .f:last-child {
+      margin-bottom: 0
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted2);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-bottom: 7px
+    }
+
+    input[type=text],
+    input[type=password],
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 10px 13px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px var(--glow)
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.6
+    }
+
+    .kr {
+      display: flex;
+      gap: 8px
+    }
+
+    .kr input {
+      flex: 1;
+      font-size: 12px;
+      letter-spacing: 1px
+    }
+
+    .bsm {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 0 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s
+    }
+
+    .bsm:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, .15)
+    }
+
+    .sr {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      flex: 1;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 4px;
+      outline: none;
+      border: 1px solid var(--border);
+      padding: 0
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(99, 179, 237, .4)
+    }
+
+    .sv {
+      min-width: 38px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--accent)
+    }
+
+    .seg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px
+    }
+
+    .sb {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 6px 11px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .sb.active {
+      background: rgba(99, 179, 237, .12);
+      border-color: rgba(99, 179, 237, .4);
+      color: var(--accent)
+    }
+
+    .sb:hover:not(.active) {
+      border-color: rgba(255, 255, 255, .15);
+      color: var(--text)
+    }
+
+    .mr {
+      display: flex;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 3px
+    }
+
+    .mb {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 9px;
+      cursor: pointer;
+      transition: all .2s;
+      text-align: center
+    }
+
+    .mb.active {
+      background: linear-gradient(135deg, rgba(99, 179, 237, .2), rgba(159, 122, 234, .2));
+      color: var(--text);
+      border: 1px solid rgba(99, 179, 237, .3)
+    }
+
+    .pro {
+      font-size: 9px;
+      background: rgba(159, 122, 234, .3);
+      color: #b794f4;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      vertical-align: middle
+    }
+
+    .uz {
+      border: 2px dashed var(--border);
+      border-radius: 11px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden
+    }
+
+    .uz:hover {
+      border-color: rgba(99, 179, 237, .3);
+      background: rgba(99, 179, 237, .03)
+    }
+
+    .uz.hi {
+      border-style: solid;
+      border-color: rgba(99, 179, 237, .3);
+      padding: 0
+    }
+
+    .uz input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%
+    }
+
+    .uph .uico {
+      font-size: 26px;
+      margin-bottom: 7px
+    }
+
+    .uph .utxt {
+      font-size: 12px;
+      color: var(--muted2)
+    }
+
+    .uph .usub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .uprev {
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 9px;
+      display: none
+    }
+
+    .ucl {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      background: rgba(0, 0, 0, .7);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted2);
+      font-size: 11px;
+      padding: 2px 7px;
+      cursor: pointer;
+      display: none;
+      z-index: 2;
+      font-family: 'DM Mono', monospace
+    }
+
+    .tr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .tr>label {
+      margin: 0;
+      font-size: 12px
+    }
+
+    .tog {
+      position: relative;
+      width: 34px;
+      height: 19px
+    }
+
+    .tog input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .tsl {
+      position: absolute;
+      inset: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .tsl:before {
+      content: '';
+      position: absolute;
+      width: 11px;
+      height: 11px;
+      left: 3px;
+      top: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: .2s
+    }
+
+    .tog input:checked+.tsl {
+      background: rgba(99, 179, 237, .2);
+      border-color: rgba(99, 179, 237, .4)
+    }
+
+    .tog input:checked+.tsl:before {
+      transform: translateX(15px);
+      background: var(--accent)
+    }
+
+    .bgen {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 11px;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .bgen:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(99, 179, 237, .3)
+    }
+
+    .bgen:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none
+    }
+
+    .sc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      display: none
+    }
+
+    .sc.show {
+      display: block
+    }
+
+    .sh {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px
+    }
+
+    .sl {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: .5px;
+      color: var(--muted2);
+      text-transform: uppercase
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px
+    }
+
+    .pill.queued,
+    .pill.preprocessing {
+      background: rgba(236, 201, 75, .12);
+      color: #ecc94b;
+      border: 1px solid rgba(236, 201, 75, .3)
+    }
+
+    .pill.running,
+    .pill.processing {
+      background: rgba(99, 179, 237, .12);
+      color: var(--accent);
+      border: 1px solid rgba(99, 179, 237, .3)
+    }
+
+    .pill.succeeded {
+      background: rgba(104, 211, 145, .12);
+      color: var(--success);
+      border: 1px solid rgba(104, 211, 145, .3)
+    }
+
+    .pill.failed,
+    .pill.cancelled {
+      background: rgba(252, 129, 129, .12);
+      color: var(--danger);
+      border: 1px solid rgba(252, 129, 129, .3)
+    }
+
+    .pb {
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 10px
+    }
+
+    .pf {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 3px;
+      transition: width .4s
+    }
+
+    .pf.spin {
+      animation: sw 1.5s ease-in-out infinite;
+      width: 35%
+    }
+
+    @keyframes sw {
+      0% {
+        transform: translateX(-100%)
+      }
+
+      100% {
+        transform: translateX(350%)
+      }
+    }
+
+    .sm {
+      font-size: 11px;
+      color: var(--muted2);
+      display: flex;
+      justify-content: space-between
+    }
+
+    .eb {
+      background: rgba(252, 129, 129, .08);
+      border: 1px solid rgba(252, 129, 129, .3);
+      border-radius: 9px;
+      padding: 10px 13px;
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 12px;
+      display: none
+    }
+
+    .eb.show {
+      display: block
+    }
+
+    .vw {
+      margin-top: 14px;
+      border-radius: 11px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: none
+    }
+
+    .vw.show {
+      display: block
+    }
+
+    video {
+      width: 100%;
+      display: block;
+      background: #000
+    }
+
+    .va {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px
+    }
+
+    .ba {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 9px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px
+    }
+
+    .ba:hover {
+      border-color: rgba(99, 179, 237, .35);
+      color: var(--accent)
+    }
+
+    .logb {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 13px;
+      font-size: 11px;
+      color: var(--muted2);
+      line-height: 1.8;
+      max-height: 110px;
+      overflow-y: auto;
+      margin-top: 12px
+    }
+
+    .le {
+      display: flex;
+      gap: 9px
+    }
+
+    .ltime {
+      color: var(--muted);
+      min-width: 60px
+    }
+
+    .lmsg.ok {
+      color: var(--success)
+    }
+
+    .lmsg.err {
+      color: var(--danger)
+    }
+
+    .hl {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 260px;
+      overflow-y: auto
+    }
+
+    .hi2 {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .hi2:hover {
+      border-color: rgba(99, 179, 237, .3)
+    }
+
+    .hm {
+      flex: 1;
+      min-width: 0
+    }
+
+    .hp {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .hs {
+      font-size: 10px;
+      color: var(--muted2);
+      margin-top: 2px
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--muted);
+      border-radius: 4px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="lm">S2</div>
+        <div class="lt">Sora 2 Studio <span>/ Local Proxy</span></div>
+      </div>
+      <div class="badge">localhost:3000</div>
+    </header>
+
+    <!-- API Key -->
+    <div class="card full">
+      <div class="ch">
+        <div class="ci">🔑</div>
+        <div class="ct">API Key</div>
+      </div>
+      <div class="f">
+        <label>OpenAI API Key</label>
+        <div class="kr">
+          <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" />
+          <button class="bsm" onclick="toggleKey()">show</button>
+          <button class="bsm" onclick="saveKey()">save</button>
+        </div>
+        <p class="hint">Stored in sessionStorage. Sent only to your local proxy at localhost:3000 — never directly to
+          OpenAI from the browser.</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">🤖</div>
+            <div class="ct">Model</div>
+          </div>
+          <div class="mr">
+            <button class="mb active" data-model="sora-2" onclick="pickM(this)">sora-2</button>
+            <button class="mb" data-model="sora-2-pro" onclick="pickM(this)">sora-2-pro <span
+                class="pro">PRO</span></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">✍️</div>
+            <div class="ct">Prompt</div>
+          </div>
+          <div class="f">
+            <label>Describe your video</label>
+            <textarea id="prompt" placeholder="Describe the scene, camera motion, lighting, mood, sounds…"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">🎬</div>
+            <div class="ct">Resolution & Duration</div>
+          </div>
+          <div class="f">
+            <label>Size</label>
+            <div class="seg" id="sizeSeg">
+              <button class="sb active" data-size="1280x720" onclick="pickSize(this)">1280×720 <span
+                  style="opacity:.5;font-size:10px">16:9</span></button>
+              <button class="sb" data-size="720x1280" onclick="pickSize(this)">720×1280 <span
+                  style="opacity:.5;font-size:10px">9:16</span></button>
+              <button class="sb" data-size="1792x1024" onclick="pickSize(this)">1792×1024 <span
+                  style="opacity:.5;font-size:10px">16:9 PRO</span></button>
+              <button class="sb" data-size="1024x1792" onclick="pickSize(this)">1024×1792 <span
+                  style="opacity:.5;font-size:10px">9:16 PRO</span></button>
+            </div>
+          </div>
+          <div class="f">
+            <label>Duration</label>
+            <div class="seg" id="durSeg">
+              <button class="sb active" data-dur="4" onclick="pickDur(this)">4s</button>
+              <button class="sb" data-dur="8" onclick="pickDur(this)">8s</button>
+              <button class="sb" data-dur="12" onclick="pickDur(this)">12s</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+      <div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">🖼️</div>
+            <div class="ct">Image Reference (Optional)</div>
+          </div>
+          <p class="hint" style="margin-bottom:11px">Upload an image to use as the first frame (Image-to-Video). Image
+            dimensions should match your selected resolution.</p>
+          <div class="uz" id="uZone" ondrop="onDrop(event)" ondragover="event.preventDefault()">
+            <input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp" onchange="onImgSel(event)" />
+            <button class="ucl" id="uClear" onclick="clearImg(event)">✕ clear</button>
+            <img class="uprev" id="uPrev" />
+            <div class="uph" id="uPH">
+              <div class="uico">📁</div>
+              <div class="utxt">Drop or click to upload</div>
+              <div class="usub">JPEG / PNG / WebP</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">⚙️</div>
+            <div class="ct">Polling</div>
+          </div>
+          <div class="f">
+            <div class="tr">
+              <label>Auto-poll until done</label>
+              <label class="tog"><input type="checkbox" id="autoPoll" checked /><span class="tsl"></span></label>
+            </div>
+          </div>
+          <div class="f">
+            <label>Poll Interval</label>
+            <div class="sr"><input type="range" id="pollInt" min="5" max="30" value="10" step="5"
+                oninput="syncS('pollInt','pollV','s')" /><span class="sv" id="pollV">10s</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ci">🔄</div>
+            <div class="ct">Resume / Reload Job</div>
+          </div>
+          <p class="hint" style="margin-bottom:11px">Paste a previous Job ID to resume polling a job from a past
+            session.</p>
+          <div class="f">
+            <label>Job ID</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="resumeId" placeholder="task_01..." style="flex:1" />
+              <button class="bsm" onclick="resumeJob()" style="padding:0 14px">Resume</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Generate -->
+      <div class="full"><button class="bgen" id="genBtn" onclick="generate()">▶ Generate Video</button></div>
+
+      <!-- Status -->
+      <div class="sc full" id="statusCard">
+        <div class="sh">
+          <div class="sl">Status</div>
+          <div class="pill" id="sPill">—</div>
+        </div>
+        <div class="pb">
+          <div class="pf spin" id="pFill"></div>
+        </div>
+        <div class="sm"><span id="sMsg">Waiting…</span><span id="jLabel"></span></div>
+        <div class="eb" id="errBox"></div>
+        <div class="vw" id="vidWrap">
+          <video id="vid" controls playsinline></video>
+          <div class="va">
+            <a class="ba" id="dlBtn" href="#" download="sora2.mp4">⬇ Download MP4</a>
+            <button class="ba" onclick="copyJob()">📋 Copy Job ID</button>
+          </div>
+        </div>
+        <div class="logb" id="logBox"></div>
+      </div>
+
+      <!-- History -->
+      <div class="card full" id="histCard" style="display:none">
+        <div class="ch">
+          <div class="ci">🕐</div>
+          <div class="ct">History</div>
+        </div>
+        <div class="hl" id="histList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    var model = 'sora-2', imgFile = null, curJobId = null, curGenId = null;
+    var pollTimers = new Set(); // track all active poll timers
+    var hist = [];
+
+    window.onload = function () {
+      var k = sessionStorage.getItem('sk'); if (k) document.getElementById('apiKey').value = k;
+    };
+
+    function syncS(id, vid, u) { document.getElementById(vid).textContent = document.getElementById(id).value + u; }
+    function pickDur(btn) { document.querySelectorAll('#durSeg .sb').forEach(function (b) { b.classList.remove('active'); }); btn.classList.add('active'); }
+
+    function saveKey() { var k = apiK(); if (k) { sessionStorage.setItem('sk', k); log('API key saved.', 'ok'); } }
+    function toggleKey() { var e = document.getElementById('apiKey'); e.type = e.type === 'password' ? 'text' : 'password'; }
+    function apiK() { return document.getElementById('apiKey').value.trim(); }
+    function pickM(btn) { document.querySelectorAll('.mb').forEach(function (b) { b.classList.remove('active'); }); btn.classList.add('active'); model = btn.dataset.model; }
+
+    function pickSize(btn) { document.querySelectorAll('#sizeSeg .sb').forEach(function (b) { b.classList.remove('active'); }); btn.classList.add('active'); }
+    function getSize() { return (document.querySelector('#sizeSeg .active') || { dataset: { size: '1280x720' } }).dataset.size || '1280x720'; }
+
+    function onImgSel(e) { if (e.target.files[0]) loadImg(e.target.files[0]); }
+    function onDrop(e) { e.preventDefault(); if (e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]); }
+    function loadImg(file) {
+      imgFile = file;
+      var r = new FileReader();
+      r.onload = function (ev) {
+        document.getElementById('uPrev').src = ev.target.result;
+        document.getElementById('uPrev').style.display = 'block';
+        document.getElementById('uPH').style.display = 'none';
+        document.getElementById('uClear').style.display = 'block';
+        document.getElementById('uZone').classList.add('hi');
+      };
+      r.readAsDataURL(file);
+    }
+    function clearImg(e) {
+      e.stopPropagation(); imgFile = null;
+      document.getElementById('uPrev').src = ''; document.getElementById('uPrev').style.display = 'none';
+      document.getElementById('uPH').style.display = 'block';
+      document.getElementById('uClear').style.display = 'none';
+      document.getElementById('uZone').classList.remove('hi');
+      document.getElementById('imgFile').value = '';
+    }
+
+    function log(msg, cls) {
+      var box = document.getElementById('logBox');
+      var t = new Date().toTimeString().slice(0, 8);
+      var row = document.createElement('div'); row.className = 'le';
+      row.innerHTML = '<span class="ltime">' + t + '</span><span class="lmsg ' + (cls || '') + '">' + msg + '</span>';
+      box.appendChild(row); box.scrollTop = box.scrollHeight;
+    }
+
+    function setStatus(s, msg) {
+      var p = document.getElementById('sPill'); p.textContent = s; p.className = 'pill ' + s;
+      document.getElementById('sMsg').textContent = msg;
+      var f = document.getElementById('pFill');
+      if (['queued', 'preprocessing', 'running', 'processing', 'in_progress'].includes(s)) { f.classList.add('spin'); f.style.width = '35%'; f.style.background = ''; }
+      else if (s === 'succeeded' || s === 'completed') { f.classList.remove('spin'); f.style.width = '100%'; f.style.background = ''; }
+      else { f.classList.remove('spin'); f.style.width = '100%'; f.style.background = 'var(--danger)'; }
+    }
+    function showErr(msg) {
+      var e = document.getElementById('errBox'); e.textContent = '⚠ ' + msg; e.classList.add('show');
+      setStatus('failed', msg);
+    }
+
+    // Resize/crop any image to exact target dimensions using canvas
+    function resizeImgToBlob(file, targetW, targetH) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function () {
+          URL.revokeObjectURL(url);
+          var canvas = document.createElement('canvas');
+          canvas.width = targetW; canvas.height = targetH;
+          var ctx = canvas.getContext('2d');
+          // Cover crop: scale to fill, center-crop
+          var scale = Math.max(targetW / img.width, targetH / img.height);
+          var sw = targetW / scale, sh = targetH / scale;
+          var sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+          canvas.toBlob(function (blob) { resolve(blob); }, 'image/jpeg', 0.92);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    async function generate() {
+      var apiKey = apiK(); if (!apiKey) { alert('Enter your OpenAI API key first.'); return; }
+      var prompt = document.getElementById('prompt').value.trim(); if (!prompt) { alert('Enter a prompt.'); return; }
+
+      document.getElementById('statusCard').classList.add('show');
+      document.getElementById('vidWrap').classList.remove('show');
+      document.getElementById('errBox').classList.remove('show');
+      document.getElementById('logBox').innerHTML = '';
+      document.getElementById('genBtn').disabled = true;
+      // Cancel ALL active poll timers
+      pollTimers.forEach(function (t) { clearInterval(t); }); pollTimers.clear();
+
+      var size = getSize();
+      var parts = size.split('x');
+      var dims = { w: parseInt(parts[0]), h: parseInt(parts[1]) };
+      var n_seconds = parseInt((document.querySelector('#durSeg .active') || { dataset: { dur: '4' } }).dataset.dur);
+      var n_variants = 1;
+
+      log('Model: ' + model + ' | Size: ' + size + ' | Dur: ' + n_seconds + 's');
+      setStatus('queued', 'Submitting to OpenAI via proxy…');
+
+      try {
+        var body, headers;
+        if (imgFile) {
+          log('Mode: image-to-video — resizing image to ' + dims.w + 'x' + dims.h + '…');
+          var resizedBlob = await resizeImgToBlob(imgFile, dims.w, dims.h);
+          var fd = new FormData();
+          fd.append('model', model);
+          fd.append('prompt', prompt);
+          fd.append('width', String(dims.w));
+          fd.append('height', String(dims.h));
+          fd.append('n_seconds', String(n_seconds));
+          fd.append('image', resizedBlob, 'reference.jpg');
+          body = fd; headers = { 'Authorization': 'Bearer ' + apiKey };
+        } else {
+          log('Mode: text-to-video (JSON via proxy)');
+          body = JSON.stringify({ model: model, prompt: prompt, width: dims.w, height: dims.h, n_seconds: n_seconds });
+          headers = { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
+        }
+
+        log('POST /api/jobs → OpenAI /v1/videos');
+        var r = await fetch('/api/jobs', { method: 'POST', headers: headers, body: body });
+        var data = await r.json();
+        if (!r.ok) throw new Error(data.error || data.message || 'HTTP ' + r.status);
+
+        curJobId = data.id;
+        document.getElementById('jLabel').textContent = 'Job: ' + curJobId;
+        log('Job created: ' + curJobId, 'ok');
+        addHist(prompt, curJobId, data.status || 'queued');
+        setStatus(data.status || 'queued', 'Queued. Polling…');
+
+        if (document.getElementById('autoPoll').checked) {
+          poll(apiKey, curJobId, parseInt(document.getElementById('pollInt').value) * 1000);
+        }
+      } catch (err) {
+        showErr(err.message); log('Error: ' + err.message, 'err');
+        document.getElementById('genBtn').disabled = false;
+      }
+    }
+
+    function poll(apiKey, jobId, interval) {
+      pollTimers.forEach(function (t) { clearInterval(t); }); pollTimers.clear();
+      var attempt = 0;
+      var timer;
+      var tick = async function () {
+        attempt++;
+        log('Poll #' + attempt + ' for job: ' + jobId);
+        try {
+          var r = await fetch('/api/jobs/' + jobId, { headers: { 'Authorization': 'Bearer ' + apiKey } });
+          var data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+          var s = data.status;
+          setStatus(s, 'Status: ' + s); updateHist(jobId, s); log('→ ' + s);
+          // newer API uses 'completed'; legacy uses 'succeeded'
+          if (s === 'succeeded' || s === 'completed') {
+            clearInterval(timer); pollTimers.delete(timer);
+            // Newer API: video ID is the job ID itself; Legacy: uses generations[].id
+            var gens = data.generations || [];
+            if (gens.length > 0) {
+              curGenId = gens[0].id; log('Generation ID: ' + curGenId, 'ok');
+            } else {
+              curGenId = data.id || jobId; log('Video ID: ' + curGenId, 'ok');
+            }
+            loadVideo(apiKey, curGenId);
+            document.getElementById('genBtn').disabled = false;
+          } else if (s === 'failed' || s === 'cancelled' || s === 'error') {
+            clearInterval(timer); pollTimers.delete(timer);
+            showErr('Job ' + s + ': ' + (data.failure_reason || 'unknown'));
+            document.getElementById('genBtn').disabled = false;
+          }
+        } catch (err) { log('Poll error: ' + err.message, 'err'); }
+      };
+      tick(); timer = setInterval(tick, interval); pollTimers.add(timer);
+    }
+
+    async function loadVideo(apiKey, genId) {
+      try {
+        log('Loading video for: ' + genId);
+        setStatus('succeeded', 'Video ready — loading player…');
+        // Stream directly: set src to proxy URL so browser can play & seek without full download
+        var streamUrl = '/api/video/' + encodeURIComponent(genId) + '?key=' + encodeURIComponent(apiKey);
+        var vid = document.getElementById('vid');
+        vid.src = streamUrl;
+        document.getElementById('dlBtn').href = streamUrl;
+        document.getElementById('dlBtn').download = 'sora2.mp4';
+        document.getElementById('vidWrap').classList.add('show');
+        log('Video ready! ✓', 'ok');
+      } catch (err) { showErr('Video error: ' + err.message); log('Video error: ' + err.message, 'err'); }
+    }
+
+    function copyJob() { if (curJobId) navigator.clipboard.writeText(curJobId); }
+
+    function resumeJob() {
+      var k = apiK(); if (!k) { alert('Enter API key first.'); return; }
+      var id = document.getElementById('resumeId').value.trim(); if (!id) { alert('Enter a Job ID.'); return; }
+      curJobId = id;
+      document.getElementById('statusCard').classList.add('show');
+      document.getElementById('logBox').innerHTML = '';
+      document.getElementById('jLabel').textContent = 'Job: ' + id;
+      log('Resuming job: ' + id);
+      poll(k, id, parseInt(document.getElementById('pollInt').value) * 1000);
+    }
+
+    function addHist(p, id, s) { hist.unshift({ p: p, id: id, s: s, t: new Date().toLocaleTimeString() }); renderHist(); document.getElementById('histCard').style.display = 'block'; }
+    function updateHist(id, s) { var h = hist.find(function (x) { return x.id === id; }); if (h) { h.s = s; renderHist(); } }
+    function renderHist() {
+      document.getElementById('histList').innerHTML = hist.map(function (h) {
+        return '<div class="hi2" onclick="reloadJ(\'' + h.id + '\')"><div class="hm"><div class="hp">' + h.p + '</div><div class="hs">' + h.t + ' · ' + h.id + '</div></div><div class="pill ' + h.s + '" style="font-size:10px;padding:2px 7px">' + h.s + '</div></div>';
+      }).join('');
+    }
+    function reloadJ(id) {
+      var k = apiK(); if (!k) { alert('Enter API key first.'); return; }
+      curJobId = id; document.getElementById('statusCard').classList.add('show');
+      document.getElementById('logBox').innerHTML = '';
+      document.getElementById('jLabel').textContent = 'Job: ' + id;
+      log('Reloading job: ' + id);
+      poll(k, id, parseInt(document.getElementById('pollInt').value) * 1000);
+    }
+  </script>
+</body>
+
+</html>

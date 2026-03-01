@@ -1,0 +1,285 @@
+# Sora 2 API — Complete Documentation & Feature Research
+
+## Overview
+
+OpenAI's Sora 2 offers AI video generation via two channels: the **web platform** (sora.com / ChatGPT) and the **developer API**. This document catalogs all known API endpoints, parameters, and compares web platform features to what's available via API.
+
+> [!IMPORTANT]
+> There are **two endpoint schemas** in use:
+> - **Legacy / Azure-style**: `POST /v1/video/generations/jobs` ← *your current codebase uses this*
+> - **Newer OpenAI native**: `POST /v1/videos` ← *newer official docs reference this*
+> Both hit the same underlying model; the newer schema uses slightly different parameter names.
+
+---
+
+## 1. API Endpoints
+
+### Core Endpoints (Legacy — `/v1/video/generations/jobs`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/video/generations/jobs` | Create a video generation job |
+| `GET` | `/v1/video/generations/jobs/{jobId}` | Poll job status |
+| `GET` | `/v1/video/generations/{generationId}/content/video` | Download completed MP4 |
+
+### Core Endpoints (Newer — `/v1/videos`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/videos` | Create a video generation job |
+| `GET` | `/v1/videos/{videoId}` | Get video status & metadata |
+| `GET` | `/v1/videos/{videoId}/content` | Download video MP4 |
+| `GET` | `/v1/videos?limit=N&after=ID&order=asc` | List all generated videos (paginated) |
+| `DELETE` | `/v1/videos/{videoId}` | Delete a video from OpenAI storage |
+
+> [!NOTE]
+> **Your app currently uses**: the legacy 3-endpoint pattern. The newer API adds **List** and **Delete** endpoints plus slightly different parameter naming.
+
+---
+
+## 2. Create Video — Request Body Parameters
+
+### Legacy Endpoint (`POST /v1/video/generations/jobs`)
+
+Used by your current [server.js](file:///d:/SoraStudio/server.js). Accepts JSON or multipart/form-data.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `model` | string | Yes | `"sora-2"` or `"sora-2-pro"` |
+| `prompt` | string | Yes | Natural-language description of the video |
+| `width` | integer | No | Output width in px (e.g. 1280) |
+| `height` | integer | No | Output height in px (e.g. 720) |
+| `n_seconds` | integer | No | Duration in seconds (5–20) |
+| `n_variants` | integer | No | Number of variants to generate (1–4) |
+| `inpaint_items` | JSON array | No | Image reference items for image-to-video (multipart only) |
+| `files` | binary | No | Reference image file (multipart only) |
+
+### Newer Endpoint (`POST /v1/videos`)
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `prompt` | string | **Yes** | — | Detailed text prompt describing the video |
+| `model` | string | No | `"sora-2"` | `"sora-2"` or `"sora-2-pro"` |
+| `size` | string | No | `"1280x720"` | Resolution as `"WIDTHxHEIGHT"` string |
+| `seconds` | integer | No | `4` | Duration: `4`, `8`, or `12` seconds |
+| `input_reference` | file/URL | No | — | Reference image (JPEG/PNG/WebP). Dimensions must match `size` |
+| `remix_id` | string | No | — | ID of existing video to remix/modify |
+| `n` | integer | No | `1` | Number of video variants to generate |
+
+---
+
+## 3. Models
+
+| Model | Quality | Max Resolution | Speed | Use Case |
+|-------|---------|---------------|-------|----------|
+| `sora-2` | Good | 720p (1280×720) | Fast | Rapid iteration, prototyping, social media |
+| `sora-2-pro` | Production-grade | 1080p+ (1792×1024) | Slower | Cinematic footage, marketing assets |
+
+---
+
+## 4. Supported Resolutions
+
+### sora-2
+
+| Aspect Ratio | Resolutions |
+|-------------|-------------|
+| 16:9 (Landscape) | 854×480, 1280×720 |
+| 9:16 (Portrait) | 480×854, 720×1280 |
+| 1:1 (Square) | 480×480, 720×720 |
+
+### sora-2-pro
+
+| Aspect Ratio | Resolutions |
+|-------------|-------------|
+| 16:9 (Landscape) | 854×480, 1280×720, 1920×1080, 1792×1024 |
+| 9:16 (Portrait) | 480×854, 720×1280, 1080×1920, 1024×1792 |
+| 1:1 (Square) | 480×480, 720×720, 1080×1080 |
+
+---
+
+## 5. Job Status Values
+
+```
+queued → preprocessing → running → processing → succeeded
+                                              → failed
+                                              → cancelled
+```
+
+The job response includes:
+- [id](file:///d:/SoraStudio/index.html#403-416) — Job ID
+- `status` — One of the above values
+- `generations[]` — Array of completed generations (each with its own [id](file:///d:/SoraStudio/index.html#403-416))
+- `failure_reason` — Error message if `failed`
+
+---
+
+## 6. Web Platform Features vs API Availability
+
+| Feature | Web Platform | API Available? | API Implementation |
+|---------|-------------|----------------|-------------------|
+| **Text-to-Video** | ✅ | ✅ | `prompt` parameter |
+| **Image-to-Video** | ✅ | ✅ | `input_reference` / `inpaint_items` + file upload |
+| **Remix** | ✅ | ✅ | `remix_id` parameter on create endpoint |
+| **Storyboard** | ✅ | ⚠️ Partial | Not a single API call — requires chaining multiple generations with prompts per segment |
+| **Blend** | ✅ | ❌ | Web-only experimental tool (combines two videos) |
+| **Extend** | ✅ | ⚠️ Partial | Can be achieved via remix with continuation prompt |
+| **Loop** | ✅ | ❌ | Web-only tool for seamless looping |
+| **Re-cut** | ✅ | ❌ | Web-only trim/timing tool |
+| **Synchronized Audio** | ✅ | ✅ | Generated automatically in Sora 2 output |
+| **Characters / Cameo** | ✅ | ⚠️ Limited | Some API access to likeness injection (requires consent) |
+| **Style Presets** | ✅ | ❌ | Web-only convenience — can be replicated via detailed prompts |
+| **Remove Watermark** | Pro only | Pro only | Higher-tier access or `sora-2-pro` model |
+| **C2PA Metadata** | ✅ | ✅ | Automatically embedded in all generated videos |
+| **List Videos** | ✅ | ✅ | `GET /v1/videos` (newer API only) |
+| **Delete Videos** | ✅ | ✅ | `DELETE /v1/videos/{id}` (newer API only) |
+
+---
+
+## 7. Image-to-Video (Input Reference) Details
+
+When providing a reference image, the image acts as the first frame or visual guide:
+
+- **Supported formats**: JPEG, PNG, WebP
+- **Dimension requirement**: Image dimensions **must exactly match** the target video `size`
+- **Max file size**: ~20 MB
+- **Legacy API**: Uses multipart form-data with `inpaint_items` JSON array:
+  ```json
+  [
+    {
+      "frame_index": 0,
+      "type": "image",
+      "file_name": "reference.jpg",
+      "crop_bounds": {
+        "left_fraction": 0,
+        "top_fraction": 0,
+        "right_fraction": 1,
+        "bottom_fraction": 1
+      }
+    }
+  ]
+  ```
+- **Newer API**: Uses `input_reference` field directly (image URL or file upload)
+
+---
+
+## 8. Remix Feature
+
+Remix lets you modify an existing video with a new prompt, keeping the base video's structure:
+
+```json
+{
+  "model": "sora-2",
+  "prompt": "Change the color of the car to red and add rain",
+  "remix_id": "video_abc123",
+  "seconds": 8,
+  "size": "1280x720"
+}
+```
+
+- Only available on newer `/v1/videos` endpoint
+- Requires the `remix_id` of a previously generated video
+- The prompt describes the desired modifications
+- Supports varying "remix strength" on the web platform (not clearly exposed in API)
+
+---
+
+## 9. Authentication & Access
+
+- **Auth header**: `Authorization: Bearer sk-...`
+- **Organization verification required**: Must verify org at `platform.openai.com/settings/organization/general`
+- **Access propagation**: Up to 15 minutes after verification
+- **API access**: May require application/invite for preview access
+- **Azure OpenAI**: Also available through Microsoft Foundry / Azure OpenAI service
+
+---
+
+## 10. Gaps in Your Current Implementation
+
+Comparing your [server.js](file:///d:/SoraStudio/server.js) and [index.html](file:///d:/SoraStudio/index.html) against all available API features:
+
+| Feature | Status in Your App | Notes |
+|---------|--------------------|-------|
+| Text-to-Video | ✅ Implemented | Working |
+| Image-to-Video | ✅ Implemented | Via multipart + `inpaint_items` |
+| Model Selection | ✅ Implemented | `sora-2` / `sora-2-pro` toggle |
+| Resolution Selection | ✅ Implemented | 480p, 720p, 1080p with aspect ratios |
+| Duration Control | ✅ Implemented | 5–20 seconds slider |
+| Variants | ✅ Implemented | 1–4 slider |
+| Job Polling | ✅ Implemented | Auto-poll with interval |
+| Job Resume | ✅ Implemented | Paste Job ID to resume |
+| **Remix** | ❌ Missing | Need `remix_id` parameter support |
+| **List Videos** | ❌ Missing | `GET /v1/videos` endpoint |
+| **Delete Videos** | ❌ Missing | `DELETE /v1/videos/{id}` endpoint |
+| **Newer /v1/videos endpoint** | ❌ Not using | Using legacy `/v1/video/generations/jobs` |
+| **Storyboard** | ❌ Missing | Would need multi-segment UI + chained API calls |
+| **Extend Video** | ❌ Missing | Achievable via remix with continuation prompt |
+| **Multiple variant gallery** | ❌ Missing | Currently only shows first generation result |
+
+---
+
+## 11. Example API Calls
+
+### Text-to-Video (Newer API)
+```bash
+curl -X POST https://api.openai.com/v1/videos \
+  -H "Authorization: Bearer sk-..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sora-2",
+    "prompt": "A cinematic shot of a golden retriever running through a field of sunflowers at sunset",
+    "size": "1280x720",
+    "seconds": 8
+  }'
+```
+
+### Image-to-Video (Legacy API — your current approach)
+```bash
+curl -X POST https://api.openai.com/v1/video/generations/jobs \
+  -H "Authorization: Bearer sk-..." \
+  -F "model=sora-2" \
+  -F "prompt=Animate this scene with gentle wind" \
+  -F "width=1280" \
+  -F "height=720" \
+  -F "n_seconds=5" \
+  -F "n_variants=1" \
+  -F 'inpaint_items=[{"frame_index":0,"type":"image","file_name":"ref.jpg","crop_bounds":{"left_fraction":0,"top_fraction":0,"right_fraction":1,"bottom_fraction":1}}]' \
+  -F "files=@ref.jpg"
+```
+
+### Remix (Newer API)
+```bash
+curl -X POST https://api.openai.com/v1/videos \
+  -H "Authorization: Bearer sk-..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sora-2",
+    "prompt": "Make it nighttime with neon city lights",
+    "remix_id": "video_abc123",
+    "seconds": 8,
+    "size": "1280x720"
+  }'
+```
+
+### List Videos
+```bash
+curl "https://api.openai.com/v1/videos?limit=20&order=desc" \
+  -H "Authorization: Bearer sk-..."
+```
+
+### Delete Video
+```bash
+curl -X DELETE https://api.openai.com/v1/videos/video_abc123 \
+  -H "Authorization: Bearer sk-..."
+```
+
+---
+
+## 12. Pricing Notes
+
+- **sora-2**: Lower cost per generation, suitable for iteration
+- **sora-2-pro**: Higher cost, best for final production output
+- Pricing scales with resolution, duration, and number of variants
+- Free tier users: Limited generations per month at 480p
+- Plus subscribers: ~50 videos/month at 720p
+- Pro subscribers: Higher limits, 1080p, watermark-free downloads
+- API pricing: Token/usage-based, varies by model
