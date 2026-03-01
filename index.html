@@ -734,6 +734,111 @@
       background: var(--muted);
       border-radius: 4px
     }
+
+    /* Gallery */
+    .gal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .gal-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      overflow: hidden;
+      transition: border-color .2s, transform .2s;
+      cursor: pointer;
+    }
+
+    .gal-card:hover {
+      border-color: rgba(99, 179, 237, .3);
+      transform: translateY(-2px);
+    }
+
+    .gal-vid {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #000;
+      display: block;
+    }
+
+    .gal-info {
+      padding: 12px 14px;
+    }
+
+    .gal-prompt {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .gal-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .gal-tag {
+      font-size: 10px;
+      background: rgba(99, 179, 237, .08);
+      color: var(--accent);
+      border: 1px solid rgba(99, 179, 237, .2);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .gal-date {
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .gal-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .gal-btn {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: all .2s;
+    }
+
+    .gal-btn:hover {
+      color: var(--text);
+      border-color: rgba(99, 179, 237, .3);
+    }
+
+    .gal-btn.danger:hover {
+      color: var(--danger);
+      border-color: rgba(252, 129, 129, .3);
+    }
+
+    .gal-empty {
+      text-align: center;
+      padding: 30px;
+      color: var(--muted);
+      font-size: 12px;
+    }
   </style>
 </head>
 
@@ -902,13 +1007,23 @@
         <div class="logb" id="logBox"></div>
       </div>
 
-      <!-- History -->
+      <!-- Session History -->
       <div class="card full" id="histCard" style="display:none">
         <div class="ch">
           <div class="ci">🕐</div>
-          <div class="ct">History</div>
+          <div class="ct">Session History</div>
         </div>
         <div class="hl" id="histList"></div>
+      </div>
+
+      <!-- Gallery (Supabase) -->
+      <div class="card full" id="galCard">
+        <div class="ch">
+          <div class="ci">🎬</div>
+          <div class="ct">Gallery</div>
+        </div>
+        <div class="gal-grid" id="galGrid">
+        </div>
       </div>
 
     </div>
@@ -921,6 +1036,8 @@
 
     window.onload = function () {
       var k = sessionStorage.getItem('sk'); if (k) document.getElementById('apiKey').value = k;
+      loadGallery();
+      startGalBg();
     };
 
     function syncS(id, vid, u) { document.getElementById(vid).textContent = document.getElementById(id).value + u; }
@@ -1016,7 +1133,6 @@
       var parts = size.split('x');
       var dims = { w: parseInt(parts[0]), h: parseInt(parts[1]) };
       var n_seconds = parseInt((document.querySelector('#durSeg .active') || { dataset: { dur: '4' } }).dataset.dur);
-      var n_variants = 1;
 
       log('Model: ' + model + ' | Size: ' + size + ' | Dur: ' + n_seconds + 's');
       setStatus('queued', 'Submitting to OpenAI via proxy…');
@@ -1107,6 +1223,9 @@
         document.getElementById('dlBtn').download = 'sora2.mp4';
         document.getElementById('vidWrap').classList.add('show');
         log('Video ready! ✓', 'ok');
+        // Reload gallery immediately + again after 5s to catch completed DB entry
+        loadGallery();
+        setTimeout(loadGallery, 5000);
       } catch (err) { showErr('Video error: ' + err.message); log('Video error: ' + err.message, 'err'); }
     }
 
@@ -1138,6 +1257,113 @@
       log('Reloading job: ' + id);
       poll(k, id, parseInt(document.getElementById('pollInt').value) * 1000);
     }
+
+    // ── Gallery (Neon PostgreSQL + local video storage) ──
+    var galRefreshTimer = null;
+
+    // Poll a single item every 5s until video_url appears (after video saves to disk)
+    function watchItem(id) {
+      var t = setInterval(async function () {
+        try {
+          var r = await fetch('/api/gallery/' + id);
+          if (!r.ok) { clearInterval(t); return; }
+          var item = await r.json();
+          if (item.video_url) {
+            clearInterval(t);
+            var card = document.querySelector('[data-job="' + id + '"]');
+            if (card) {
+              var ph = card.querySelector('.gal-pending');
+              if (ph) {
+                var vid = document.createElement('video');
+                vid.className = 'gal-vid'; vid.src = item.video_url;
+                vid.muted = true; vid.setAttribute('playsinline', '');
+                vid.setAttribute('preload', 'metadata');
+                vid.onmouseenter = function () { this.play(); };
+                vid.onmouseleave = function () { this.pause(); this.currentTime = 0; };
+                ph.replaceWith(vid);
+              }
+              var actions = card.querySelector('.gal-actions');
+              if (actions && !actions.querySelector('.dl-btn')) {
+                var a = document.createElement('a');
+                a.className = 'gal-btn dl-btn'; a.href = item.video_url;
+                a.download = 'sora2.mp4'; a.textContent = '\u2b07 Download';
+                a.onclick = function (e) { e.stopPropagation(); };
+                actions.prepend(a);
+              }
+            }
+          }
+        } catch (e) { }
+      }, 5000);
+    }
+
+    async function loadGallery() {
+      try {
+        var r = await fetch('/api/gallery');
+        var json = await r.json();
+        renderGallery(json.data || []);
+      } catch (e) { console.warn('Gallery load failed:', e); }
+    }
+
+    // Background refresh every 30s as safety net
+    function startGalBg() {
+      if (galRefreshTimer) clearInterval(galRefreshTimer);
+      galRefreshTimer = setInterval(loadGallery, 30000);
+    }
+
+    function renderGallery(items) {
+      var grid = document.getElementById('galGrid');
+      if (!items || !items.length) {
+        grid.innerHTML = '<div class="gal-empty">No saved generations yet. Generate a video to see it here.</div>';
+        return;
+      }
+      grid.innerHTML = items.map(function (item) {
+        var date = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+        var hasVideo = item.video_url && item.status === 'completed';
+        var videoHtml;
+        if (hasVideo) {
+          videoHtml = '<video class="gal-vid" src="' + item.video_url + '" muted playsinline preload="metadata"'
+            + ' onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>';
+        } else {
+          var icon = item.status === 'completed' ? '💾' : item.status === 'in_progress' ? '⚙️' : '⏳';
+          videoHtml = '<div class="gal-vid gal-pending" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:11px;">'
+            + '<div style="font-size:22px">' + icon + '</div>'
+            + (item.status === 'completed' ? 'Saving video…' : (item.status || 'queued'))
+            + '</div>';
+        }
+        return '<div class="gal-card" data-job="' + item.id + '">'
+          + videoHtml
+          + '<div class="gal-info">'
+          + '<div class="gal-prompt">' + (item.prompt || '') + '</div>'
+          + '<div class="gal-meta">'
+          + '<span class="gal-tag">' + (item.model || 'sora-2') + '</span>'
+          + '<span class="gal-tag">' + (item.size || '') + '</span>'
+          + '<span class="gal-tag">' + (item.seconds || '') + 's</span>'
+          + '<span class="pill ' + (item.status || '') + '" style="font-size:9px;padding:2px 6px">' + (item.status || '') + '</span>'
+          + '<span class="gal-date">' + date + '</span>'
+          + '</div>'
+          + '<div class="gal-actions">'
+          + (hasVideo ? '<a class="gal-btn dl-btn" href="' + item.video_url + '" download="sora2.mp4" onclick="event.stopPropagation()">⬇ Download</a>' : '')
+          + '<button class="gal-btn danger" onclick="event.stopPropagation();deleteGalItem(\'' + item.id + '\')">🗑 Delete</button>'
+          + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+
+      // Start per-item watcher for cards that are completed but video not yet saved to disk
+      items.forEach(function (item) {
+        if (item.status === 'completed' && !item.video_url) watchItem(item.id);
+      });
+    }
+
+    async function deleteGalItem(id) {
+      if (!confirm('Delete this generation?')) return;
+      try {
+        await fetch('/api/gallery/' + id, { method: 'DELETE' });
+        loadGallery();
+      } catch (e) { console.error('Delete failed:', e); }
+    }
+
+
   </script>
 </body>
 

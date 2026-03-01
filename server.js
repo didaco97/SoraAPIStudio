@@ -1,19 +1,21 @@
 /**
  * Sora 2 Studio — Local Proxy Server
  *
- * Official API (OpenAI / Azure OpenAI):
- *   POST  /v1/video/generations/jobs             → create job
- *   GET   /v1/video/generations/jobs/:id         → poll status
- *   GET   /v1/video/generations/:genId/content/video → download
+ * API Endpoints used:
+ *   POST   /v1/videos              → create text-to-video or image-to-video job
+ *   GET    /v1/videos/:id          → poll job status
+ *   GET    /v1/videos/:id/content  → stream/download video
  *
  * Usage:
  *   npm install && node server.js
  *   Open http://localhost:3000
  */
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const db = require('./db');
 
 const app = express();
 const PORT = 3000;
@@ -67,7 +69,6 @@ app.post('/api/jobs', upload.single('image'), async (req, res) => {
     // API only accepts '4', '8', or '12' as a string
     const VALID_SECS = [4, 8, 12];
     const n_seconds = String(VALID_SECS.reduce((prev, curr) => Math.abs(curr - rawSecs) < Math.abs(prev - rawSecs) ? curr : prev));
-    const n_variants = parseInt(body.n_variants) || 1;
     const size = `${width}x${height}`;
 
     let response;
@@ -105,6 +106,12 @@ app.post('/api/jobs', upload.single('image'), async (req, res) => {
     const data = await safeParseResponse(response, 'job');
     console.log(`[job] id=${data.id || '?'} status=${response.status}`);
     if (!response.ok) console.log(`[job] error body:`, JSON.stringify(data));
+
+    // Save to Neon DB on successful job creation
+    if (response.ok && data.id) {
+      await db.saveGeneration(data.id, { prompt, model, size, seconds: n_seconds });
+    }
+
     res.status(response.status).json(data);
 
   } catch (err) {
@@ -112,6 +119,11 @@ app.post('/api/jobs', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Track per-job last-known status to avoid redundant Firestore writes
+const jobStatusCache = new Map();
+// Track which jobs have already had their video uploaded to Storage
+const videoUploadedJobs = new Set();
 
 // 2. POLL STATUS — uses newer /v1/videos/{id}
 app.get('/api/jobs/:jobId', async (req, res) => {
@@ -123,10 +135,54 @@ app.get('/api/jobs/:jobId', async (req, res) => {
       headers: { 'Authorization': `Bearer ${apiKey}` }
     });
     const data = await safeParseResponse(r, 'poll');
-    console.log(`[poll] job=${req.params.jobId} status=${data.status}`);
-    if (data.status === 'failed' || data.status === 'error') {
+    const status = data.status;
+    console.log(`[poll] job=${req.params.jobId} status=${status}`);
+    if (status === 'failed' || status === 'error') {
       console.log(`[poll] failure detail:`, JSON.stringify(data));
     }
+
+    // Only write to DB when status actually changes
+    const lastStatus = jobStatusCache.get(req.params.jobId);
+    if (status && status !== lastStatus) {
+      jobStatusCache.set(req.params.jobId, status);
+      const update = { status };
+      if (status === 'failed') update.failure_reason = data.failure_reason || 'unknown';
+      await db.updateGeneration(req.params.jobId, update);
+    }
+
+    // On first completion, download and save video to local disk
+    if (status === 'completed' && !videoUploadedJobs.has(req.params.jobId)) {
+      videoUploadedJobs.add(req.params.jobId);
+      const apiKeyForUpload = getApiKey(req);
+      const jobIdForUpload = req.params.jobId;
+      (async () => {
+        try {
+          const { default: fetchVid } = await import('node-fetch');
+          console.log(`[db] downloading video for ${jobIdForUpload}...`);
+          const vr = await fetchVid(`${OPENAI}/v1/videos/${jobIdForUpload}/content`, {
+            headers: { 'Authorization': `Bearer ${apiKeyForUpload}` }
+          });
+          if (vr.ok) {
+            const chunks = [];
+            for await (const chunk of vr.body) chunks.push(chunk);
+            const videoBuffer = Buffer.concat(chunks);
+            console.log(`[db] saving ${(videoBuffer.length / 1024 / 1024).toFixed(1)}MB to disk...`);
+            const videoUrl = await db.saveVideoLocally(jobIdForUpload, videoBuffer);
+            if (videoUrl) {
+              await db.updateGeneration(jobIdForUpload, { video_url: videoUrl, status: 'completed' });
+              console.log(`[db] ✅ video saved: ${videoUrl}`);
+            }
+          } else {
+            console.error(`[db] video download failed: ${vr.status}`);
+            videoUploadedJobs.delete(jobIdForUpload);
+          }
+        } catch (e) {
+          console.error('[db] bg video save error:', e.message);
+          videoUploadedJobs.delete(jobIdForUpload);
+        }
+      })();
+    }
+
     res.status(r.status).json(data);
   } catch (err) {
     console.error('[poll error]', err.message);
@@ -271,6 +327,37 @@ app.delete('/api/videos/:videoId', async (req, res) => {
     res.status(r.status).json(data);
   } catch (err) {
     console.error('[delete error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 8. GALLERY — list all saved generations
+app.get('/api/gallery', async (req, res) => {
+  try {
+    const items = await db.getGallery(parseInt(req.query.limit) || 50);
+    res.json({ data: items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 8b. GET SINGLE GENERATION
+app.get('/api/gallery/:id', async (req, res) => {
+  try {
+    const item = await db.getGeneration(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 9. DELETE GALLERY ITEM
+app.delete('/api/gallery/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteGeneration(req.params.id);
+    res.json({ deleted: ok });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
