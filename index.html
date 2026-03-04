@@ -5,173 +5,265 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sora 2 Studio</title>
+  <meta name="description" content="Sora 2 Studio — Generate AI videos with OpenAI's Sora 2 model via local proxy" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500;600&display=swap"
     rel="stylesheet" />
   <style>
+    /* ── Design tokens ── */
     :root {
-      --bg: #080a0e;
-      --surface: #0f1218;
-      --surface2: #161b24;
-      --border: rgba(255, 255, 255, 0.07);
-      --border-active: rgba(99, 179, 237, 0.5);
-      --accent: #63b3ed;
-      --accent2: #9f7aea;
-      --text: #e2e8f0;
-      --muted: #4a5568;
-      --muted2: #718096;
-      --danger: #fc8181;
-      --success: #68d391;
-      --glow: rgba(99, 179, 237, 0.15)
+      --bg: #111110;
+      --bg-warm: #161614;
+      --surface: #1c1c1a;
+      --surface2: #232321;
+      --surface3: #2a2a27;
+      --border: rgba(245, 240, 235, 0.06);
+      --border-hover: rgba(245, 240, 235, 0.12);
+      --border-active: rgba(212, 165, 116, 0.35);
+      --accent: #d4a574;
+      --accent-dim: rgba(212, 165, 116, 0.12);
+      --accent-glow: rgba(212, 165, 116, 0.08);
+      --text: #ede8e3;
+      --text-secondary: #a39e96;
+      --muted: #6b6660;
+      --muted2: #857f78;
+      --danger: #e07070;
+      --danger-dim: rgba(224, 112, 112, 0.1);
+      --success: #7ec89a;
+      --success-dim: rgba(126, 200, 154, 0.1);
+      --warning: #d4b76a;
+      --warning-dim: rgba(212, 183, 106, 0.1);
+      --radius: 10px;
+      --radius-lg: 14px;
+      --serif: 'Instrument Serif', Georgia, serif;
+      --mono: 'Geist Mono', 'SF Mono', 'Fira Code', monospace;
     }
 
-    * {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0
+      padding: 0;
+    }
+
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.6;
       min-height: 100vh;
-      overflow-x: hidden
+      overflow-x: hidden;
     }
 
+    /* ── Noise grain overlay ── */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse 60% 40% at 20% 10%, rgba(99, 179, 237, 0.06), transparent 60%), radial-gradient(ellipse 50% 50% at 80% 80%, rgba(159, 122, 234, 0.05), transparent 60%);
+      opacity: 0.025;
       pointer-events: none;
-      z-index: 0
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
     }
 
+    /* ── Warm ambient gradient ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 10% 0%, rgba(212, 165, 116, 0.04), transparent 60%),
+        radial-gradient(ellipse 50% 60% at 90% 100%, rgba(212, 165, 116, 0.02), transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ── */
     .wrap {
       position: relative;
       z-index: 1;
-      max-width: 1100px;
+      max-width: 1080px;
       margin: 0 auto;
-      padding: 0 24px 80px
+      padding: 0 28px 100px;
     }
 
+    /* ── Header ── */
     header {
-      padding: 32px 0 28px;
+      padding: 40px 0 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 36px
+      margin-bottom: 44px;
+      animation: fadeUp 0.8s ease both;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px
+      gap: 14px;
     }
 
     .lm {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--accent);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 14px;
-      color: #fff
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 16px;
+      color: var(--bg);
+      letter-spacing: -0.5px;
     }
 
     .lt {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 17px
+      font-family: var(--serif);
+      font-size: 22px;
+      color: var(--text);
+      letter-spacing: -0.3px;
     }
 
     .lt span {
-      color: var(--muted2);
-      font-weight: 400
+      color: var(--muted);
+      font-style: italic;
     }
 
     .badge {
-      background: rgba(99, 179, 237, 0.08);
-      border: 1px solid rgba(99, 179, 237, 0.2);
-      color: var(--accent);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      font-family: var(--mono);
       font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 20px
+      font-weight: 400;
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
     }
 
+    /* ── Grid ── */
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
-      align-items: start
+      align-items: start;
     }
 
-    @media(max-width:720px) {
+    @media (max-width: 760px) {
       .grid {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr;
       }
     }
 
     .full {
-      grid-column: 1/-1
+      grid-column: 1 / -1;
     }
 
+    /* ── Cards ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 18px
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.6s ease both;
+      transition: border-color 0.3s ease;
     }
 
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    /* Staggered entrance */
+    .card:nth-child(1) {
+      animation-delay: 0.05s;
+    }
+
+    .card:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    .card:nth-child(3) {
+      animation-delay: 0.15s;
+    }
+
+    .card:nth-child(4) {
+      animation-delay: 0.2s;
+    }
+
+    .card:nth-child(5) {
+      animation-delay: 0.25s;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Card headers ── */
     .ch {
       display: flex;
       align-items: center;
-      gap: 9px;
-      margin-bottom: 18px
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
     .ci {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       background: var(--surface2);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px
+      font-size: 13px;
     }
 
     .ct {
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: 12px;
-      letter-spacing: .5px;
-      color: var(--muted2);
-      text-transform: uppercase
+      font-family: var(--serif);
+      font-size: 15px;
+      color: var(--text-secondary);
+      letter-spacing: 0;
+      text-transform: none;
     }
 
+    /* ── Fields ── */
     .f {
-      margin-bottom: 16px
+      margin-bottom: 18px;
     }
 
     .f:last-child {
-      margin-bottom: 0
+      margin-bottom: 0;
     }
 
     label {
       display: block;
-      font-size: 11px;
+      font-size: 10px;
+      font-weight: 500;
       color: var(--muted2);
-      letter-spacing: .5px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      margin-bottom: 7px
+      margin-bottom: 8px;
     }
 
     input[type=text],
@@ -180,178 +272,202 @@
       width: 100%;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
+      border-radius: var(--radius);
       color: var(--text);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
       font-size: 13px;
-      padding: 10px 13px;
+      padding: 11px 14px;
       outline: none;
-      transition: border-color .2s, box-shadow .2s
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     input:focus,
     textarea:focus {
       border-color: var(--border-active);
-      box-shadow: 0 0 0 3px var(--glow)
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    ::placeholder {
+      color: var(--muted);
     }
 
     textarea {
       resize: vertical;
-      min-height: 100px;
-      line-height: 1.6
+      min-height: 110px;
+      line-height: 1.7;
     }
 
+    /* ── API Key row ── */
     .kr {
       display: flex;
-      gap: 8px
+      gap: 8px;
     }
 
     .kr input {
       flex: 1;
       font-size: 12px;
-      letter-spacing: 1px
+      letter-spacing: 1px;
     }
 
     .bsm {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
+      border-radius: var(--radius);
       color: var(--muted2);
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      padding: 0 13px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 0 14px;
       cursor: pointer;
       white-space: nowrap;
-      transition: all .2s
+      transition: all 0.25s ease;
     }
 
     .bsm:hover {
       color: var(--text);
-      border-color: rgba(255, 255, 255, .15)
+      border-color: var(--border-hover);
+      background: var(--surface3);
     }
 
+    /* ── Slider row ── */
     .sr {
       display: flex;
       align-items: center;
-      gap: 10px
+      gap: 12px;
     }
 
     input[type=range] {
       -webkit-appearance: none;
+      appearance: none;
       flex: 1;
-      height: 4px;
-      background: var(--surface2);
-      border-radius: 4px;
+      height: 2px;
+      background: var(--surface3);
+      border-radius: 2px;
       outline: none;
-      border: 1px solid var(--border);
-      padding: 0
+      border: none;
+      padding: 0;
     }
 
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 15px;
-      height: 15px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: var(--accent);
       cursor: pointer;
-      box-shadow: 0 0 6px rgba(99, 179, 237, .4)
+      box-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+      transition: transform 0.15s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
     }
 
     .sv {
-      min-width: 38px;
+      min-width: 36px;
       text-align: right;
       font-size: 13px;
-      color: var(--accent)
+      color: var(--accent);
+      font-weight: 500;
     }
 
+    /* ── Segment buttons (size, duration) ── */
     .seg {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px
+      gap: 6px;
     }
 
     .sb {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 7px;
+      border-radius: 8px;
       color: var(--muted2);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
       font-size: 11px;
-      padding: 6px 11px;
+      padding: 7px 12px;
       cursor: pointer;
-      transition: all .2s
+      transition: all 0.2s ease;
     }
 
     .sb.active {
-      background: rgba(99, 179, 237, .12);
-      border-color: rgba(99, 179, 237, .4);
-      color: var(--accent)
+      background: var(--accent-dim);
+      border-color: rgba(212, 165, 116, 0.3);
+      color: var(--accent);
     }
 
     .sb:hover:not(.active) {
-      border-color: rgba(255, 255, 255, .15);
-      color: var(--text)
+      border-color: var(--border-hover);
+      color: var(--text);
     }
 
+    /* ── Model toggle row ── */
     .mr {
       display: flex;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
+      border-radius: var(--radius);
       padding: 3px;
-      gap: 3px
+      gap: 3px;
     }
 
     .mb {
       flex: 1;
       background: transparent;
       border: none;
-      border-radius: 6px;
+      border-radius: 7px;
       color: var(--muted2);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
       font-size: 12px;
-      padding: 9px;
+      padding: 10px;
       cursor: pointer;
-      transition: all .2s;
-      text-align: center
+      transition: all 0.25s ease;
+      text-align: center;
     }
 
     .mb.active {
-      background: linear-gradient(135deg, rgba(99, 179, 237, .2), rgba(159, 122, 234, .2));
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(212, 165, 116, 0.25);
+    }
+
+    .mb:hover:not(.active) {
       color: var(--text);
-      border: 1px solid rgba(99, 179, 237, .3)
     }
 
     .pro {
       font-size: 9px;
-      background: rgba(159, 122, 234, .3);
-      color: #b794f4;
+      background: rgba(212, 165, 116, 0.2);
+      color: var(--accent);
       padding: 1px 5px;
       border-radius: 3px;
       margin-left: 4px;
-      vertical-align: middle
+      vertical-align: middle;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
+    /* ── Upload zone ── */
     .uz {
-      border: 2px dashed var(--border);
-      border-radius: 11px;
-      padding: 24px;
+      border: 1px dashed var(--border-hover);
+      border-radius: var(--radius-lg);
+      padding: 28px;
       text-align: center;
       cursor: pointer;
-      transition: all .2s;
+      transition: all 0.3s ease;
       position: relative;
-      overflow: hidden
+      overflow: hidden;
     }
 
     .uz:hover {
-      border-color: rgba(99, 179, 237, .3);
-      background: rgba(99, 179, 237, .03)
+      border-color: rgba(212, 165, 116, 0.25);
+      background: var(--accent-glow);
     }
 
     .uz.hi {
       border-style: solid;
-      border-color: rgba(99, 179, 237, .3);
-      padding: 0
+      border-color: rgba(212, 165, 116, 0.2);
+      padding: 0;
     }
 
     .uz input {
@@ -360,70 +476,79 @@
       opacity: 0;
       cursor: pointer;
       width: 100%;
-      height: 100%
+      height: 100%;
     }
 
     .uph .uico {
-      font-size: 26px;
-      margin-bottom: 7px
+      font-size: 24px;
+      margin-bottom: 8px;
+      opacity: 0.7;
     }
 
     .uph .utxt {
       font-size: 12px;
-      color: var(--muted2)
+      color: var(--text-secondary);
     }
 
     .uph .usub {
       font-size: 10px;
       color: var(--muted);
-      margin-top: 3px
+      margin-top: 4px;
+      letter-spacing: 0.5px;
     }
 
     .uprev {
       width: 100%;
-      max-height: 180px;
+      max-height: 200px;
       object-fit: cover;
-      border-radius: 9px;
-      display: none
+      border-radius: var(--radius);
+      display: none;
     }
 
     .ucl {
       position: absolute;
-      top: 7px;
-      right: 7px;
-      background: rgba(0, 0, 0, .7);
+      top: 8px;
+      right: 8px;
+      background: rgba(17, 17, 16, 0.85);
+      backdrop-filter: blur(8px);
       border: 1px solid var(--border);
-      border-radius: 5px;
+      border-radius: 6px;
       color: var(--muted2);
       font-size: 11px;
-      padding: 2px 7px;
+      padding: 3px 8px;
       cursor: pointer;
       display: none;
       z-index: 2;
-      font-family: 'DM Mono', monospace
+      font-family: var(--mono);
+      transition: color 0.2s ease;
     }
 
+    .ucl:hover {
+      color: var(--danger);
+    }
+
+    /* ── Toggle ── */
     .tr {
       display: flex;
       align-items: center;
-      justify-content: space-between
+      justify-content: space-between;
     }
 
     .tr>label {
       margin: 0;
-      font-size: 12px
+      font-size: 12px;
     }
 
     .tog {
       position: relative;
-      width: 34px;
-      height: 19px
+      width: 36px;
+      height: 20px;
     }
 
     .tog input {
       opacity: 0;
       width: 0;
-      height: 0
+      height: 0;
     }
 
     .tsl {
@@ -431,147 +556,183 @@
       inset: 0;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 19px;
+      border-radius: 20px;
       cursor: pointer;
-      transition: .2s
+      transition: 0.3s ease;
     }
 
     .tsl:before {
       content: '';
       position: absolute;
-      width: 11px;
-      height: 11px;
+      width: 12px;
+      height: 12px;
       left: 3px;
       top: 3px;
       background: var(--muted);
       border-radius: 50%;
-      transition: .2s
+      transition: 0.3s ease;
     }
 
     .tog input:checked+.tsl {
-      background: rgba(99, 179, 237, .2);
-      border-color: rgba(99, 179, 237, .4)
+      background: var(--accent-dim);
+      border-color: rgba(212, 165, 116, 0.3);
     }
 
     .tog input:checked+.tsl:before {
-      transform: translateX(15px);
-      background: var(--accent)
+      transform: translateX(16px);
+      background: var(--accent);
     }
 
+    /* ── Generate button ── */
     .bgen {
       width: 100%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: var(--accent);
       border: none;
-      border-radius: 11px;
-      color: #fff;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 15px;
-      padding: 15px;
+      border-radius: var(--radius);
+      color: var(--bg);
+      font-family: var(--serif);
+      font-size: 17px;
+      padding: 16px;
       cursor: pointer;
-      transition: all .2s
+      transition: all 0.3s ease;
+      letter-spacing: -0.3px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bgen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     .bgen:hover {
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(99, 179, 237, .3)
+      box-shadow: 0 8px 32px rgba(212, 165, 116, 0.25);
+    }
+
+    .bgen:hover::before {
+      opacity: 1;
+    }
+
+    .bgen:active {
+      transform: translateY(0);
     }
 
     .bgen:disabled {
-      opacity: .5;
+      opacity: 0.4;
       cursor: not-allowed;
       transform: none;
-      box-shadow: none
+      box-shadow: none;
     }
 
+    /* ── Status card ── */
     .sc {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      display: none
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: none;
+      animation: fadeUp 0.5s ease both;
     }
 
     .sc.show {
-      display: block
+      display: block;
     }
 
     .sh {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px
+      margin-bottom: 16px;
     }
 
     .sl {
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: 12px;
-      letter-spacing: .5px;
-      color: var(--muted2);
-      text-transform: uppercase
+      font-family: var(--serif);
+      font-size: 15px;
+      color: var(--text-secondary);
     }
 
+    /* ── Status pills ── */
     .pill {
       font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 20px
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
     }
 
     .pill.queued,
     .pill.preprocessing {
-      background: rgba(236, 201, 75, .12);
-      color: #ecc94b;
-      border: 1px solid rgba(236, 201, 75, .3)
+      background: var(--warning-dim);
+      color: var(--warning);
+      border: 1px solid rgba(212, 183, 106, 0.2);
     }
 
     .pill.running,
     .pill.processing {
-      background: rgba(99, 179, 237, .12);
+      background: var(--accent-dim);
       color: var(--accent);
-      border: 1px solid rgba(99, 179, 237, .3)
+      border: 1px solid rgba(212, 165, 116, 0.2);
     }
 
-    .pill.succeeded {
-      background: rgba(104, 211, 145, .12);
+    .pill.succeeded,
+    .pill.completed {
+      background: var(--success-dim);
       color: var(--success);
-      border: 1px solid rgba(104, 211, 145, .3)
+      border: 1px solid rgba(126, 200, 154, 0.2);
     }
 
     .pill.failed,
     .pill.cancelled {
-      background: rgba(252, 129, 129, .12);
+      background: var(--danger-dim);
       color: var(--danger);
-      border: 1px solid rgba(252, 129, 129, .3)
+      border: 1px solid rgba(224, 112, 112, 0.2);
     }
 
+    /* ── Progress bar ── */
     .pb {
-      height: 3px;
-      background: var(--surface2);
-      border-radius: 3px;
+      height: 2px;
+      background: var(--surface3);
+      border-radius: 2px;
       overflow: hidden;
-      margin-bottom: 10px
+      margin-bottom: 12px;
     }
 
     .pf {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border-radius: 3px;
-      transition: width .4s
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.5s ease;
     }
 
     .pf.spin {
-      animation: sw 1.5s ease-in-out infinite;
-      width: 35%
+      animation: shimmer 2s ease-in-out infinite;
+      width: 35%;
+      background: linear-gradient(90deg, var(--accent), rgba(212, 165, 116, 0.4), var(--accent));
+      background-size: 200% 100%;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
     }
 
     @keyframes sw {
       0% {
-        transform: translateX(-100%)
+        transform: translateX(-100%);
       }
 
       100% {
-        transform: translateX(350%)
+        transform: translateX(350%);
       }
     }
 
@@ -579,163 +740,175 @@
       font-size: 11px;
       color: var(--muted2);
       display: flex;
-      justify-content: space-between
+      justify-content: space-between;
     }
 
+    /* ── Error box ── */
     .eb {
-      background: rgba(252, 129, 129, .08);
-      border: 1px solid rgba(252, 129, 129, .3);
-      border-radius: 9px;
-      padding: 10px 13px;
+      background: var(--danger-dim);
+      border: 1px solid rgba(224, 112, 112, 0.2);
+      border-radius: var(--radius);
+      padding: 12px 14px;
       font-size: 12px;
       color: var(--danger);
-      margin-top: 12px;
-      display: none
+      margin-top: 14px;
+      display: none;
     }
 
     .eb.show {
-      display: block
+      display: block;
     }
 
+    /* ── Video wrapper ── */
     .vw {
-      margin-top: 14px;
-      border-radius: 11px;
+      margin-top: 16px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1px solid var(--border);
-      display: none
+      display: none;
     }
 
     .vw.show {
-      display: block
+      display: block;
     }
 
     video {
       width: 100%;
       display: block;
-      background: #000
+      background: #000;
     }
 
     .va {
       display: flex;
       gap: 8px;
-      margin-top: 10px
+      margin-top: 12px;
     }
 
     .ba {
       flex: 1;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
+      border-radius: var(--radius);
       color: var(--text);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
       font-size: 12px;
-      padding: 9px;
+      padding: 10px;
       cursor: pointer;
       text-align: center;
       text-decoration: none;
-      transition: all .2s;
+      transition: all 0.25s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px
+      gap: 6px;
     }
 
     .ba:hover {
-      border-color: rgba(99, 179, 237, .35);
-      color: var(--accent)
+      border-color: var(--border-active);
+      color: var(--accent);
     }
 
+    /* ── Log box ── */
     .logb {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 13px;
+      border-radius: var(--radius);
+      padding: 12px 14px;
       font-size: 11px;
       color: var(--muted2);
-      line-height: 1.8;
-      max-height: 110px;
+      line-height: 1.9;
+      max-height: 120px;
       overflow-y: auto;
-      margin-top: 12px
+      margin-top: 14px;
     }
 
     .le {
       display: flex;
-      gap: 9px
+      gap: 10px;
     }
 
     .ltime {
       color: var(--muted);
-      min-width: 60px
+      min-width: 62px;
+      opacity: 0.7;
     }
 
     .lmsg.ok {
-      color: var(--success)
+      color: var(--success);
     }
 
     .lmsg.err {
-      color: var(--danger)
+      color: var(--danger);
     }
 
+    /* ── Session history ── */
     .hl {
       display: flex;
       flex-direction: column;
-      gap: 7px;
-      max-height: 260px;
-      overflow-y: auto
+      gap: 8px;
+      max-height: 280px;
+      overflow-y: auto;
     }
 
     .hi2 {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 13px;
+      border-radius: var(--radius);
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 9px;
+      gap: 10px;
       cursor: pointer;
-      transition: all .2s
+      transition: all 0.25s ease;
     }
 
     .hi2:hover {
-      border-color: rgba(99, 179, 237, .3)
+      border-color: var(--border-active);
+      background: var(--surface3);
     }
 
     .hm {
       flex: 1;
-      min-width: 0
+      min-width: 0;
     }
 
     .hp {
       font-size: 12px;
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis
+      text-overflow: ellipsis;
     }
 
     .hs {
       font-size: 10px;
-      color: var(--muted2);
-      margin-top: 2px
+      color: var(--muted);
+      margin-top: 3px;
     }
 
     .hint {
       font-size: 11px;
       color: var(--muted);
-      margin-top: 5px
+      margin-top: 6px;
+      line-height: 1.5;
     }
 
+    /* ── Scrollbar ── */
     ::-webkit-scrollbar {
       width: 4px;
-      height: 4px
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
     }
 
     ::-webkit-scrollbar-thumb {
       background: var(--muted);
-      border-radius: 4px
+      border-radius: 4px;
     }
 
-    /* Gallery */
+    /* ── Gallery ── */
     .gal-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -745,55 +918,57 @@
     .gal-card {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 11px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
-      transition: border-color .2s, transform .2s;
+      transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
       cursor: pointer;
     }
 
     .gal-card:hover {
-      border-color: rgba(99, 179, 237, .3);
-      transform: translateY(-2px);
+      border-color: rgba(212, 165, 116, 0.2);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
     }
 
     .gal-vid {
       width: 100%;
       aspect-ratio: 16/9;
       object-fit: cover;
-      background: #000;
+      background: #0a0a09;
       display: block;
     }
 
     .gal-info {
-      padding: 12px 14px;
+      padding: 14px 16px;
     }
 
     .gal-prompt {
       font-size: 12px;
       color: var(--text);
-      line-height: 1.4;
+      line-height: 1.5;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .gal-meta {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
       align-items: center;
     }
 
     .gal-tag {
       font-size: 10px;
-      background: rgba(99, 179, 237, .08);
+      background: var(--accent-dim);
       color: var(--accent);
-      border: 1px solid rgba(99, 179, 237, .2);
-      padding: 2px 7px;
+      border: 1px solid rgba(212, 165, 116, 0.15);
+      padding: 2px 8px;
       border-radius: 4px;
+      font-weight: 500;
     }
 
     .gal-date {
@@ -805,39 +980,395 @@
     .gal-actions {
       display: flex;
       gap: 6px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
 
     .gal-btn {
       flex: 1;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 7px;
       color: var(--muted2);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--mono);
       font-size: 10px;
-      padding: 5px 8px;
+      font-weight: 500;
+      padding: 6px 8px;
       cursor: pointer;
       text-align: center;
       text-decoration: none;
-      transition: all .2s;
+      transition: all 0.25s ease;
     }
 
     .gal-btn:hover {
       color: var(--text);
-      border-color: rgba(99, 179, 237, .3);
+      border-color: var(--border-hover);
+      background: var(--surface2);
     }
 
     .gal-btn.danger:hover {
       color: var(--danger);
-      border-color: rgba(252, 129, 129, .3);
+      border-color: rgba(224, 112, 112, 0.25);
     }
 
     .gal-empty {
       text-align: center;
-      padding: 30px;
+      padding: 40px;
       color: var(--muted);
       font-size: 12px;
+      font-style: italic;
+      font-family: var(--serif);
+    }
+
+    /* ── Video Modal ── */
+    #vidModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease both;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #vidModalInner {
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      max-width: 90vw;
+      width: 900px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+      animation: fadeUp 0.25s ease both;
+    }
+
+    #vidModalHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #vidModalPrompt {
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #vidModalVid {
+      width: 100%;
+      display: block;
+      background: #000;
+      max-height: calc(90vh - 62px);
+    }
+
+    .vm-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .vm-close {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted2);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .vm-close:hover {
+      color: var(--danger);
+      border-color: rgba(224, 112, 112, 0.3);
+    }
+
+    .gal-card.clickable {
+      cursor: pointer;
+    }
+
+    .gal-thumb-wrap {
+      position: relative;
+      line-height: 0;
+    }
+
+    .gal-play-btn {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .gal-play-btn span {
+      width: 46px;
+      height: 46px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .gal-card.clickable:hover .gal-play-btn {
+      opacity: 1;
+    }
+
+    /* ── Selection ── */
+    ::selection {
+      background: rgba(212, 165, 116, 0.25);
+      color: var(--text);
+    }
+
+    /* ── Focus visible for accessibility ── */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE — Tablet / large phone ≤760px
+       ════════════════════════════════════════ */
+    @media (max-width: 760px) {
+      .wrap {
+        padding: 0 18px 80px;
+      }
+
+      header {
+        padding: 24px 0 20px;
+        margin-bottom: 28px;
+      }
+
+      .lt {
+        font-size: 18px;
+      }
+
+      .card {
+        padding: 18px;
+        margin-bottom: 14px;
+      }
+
+      .gal-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      /* Modal: wider on tablet */
+      #vidModalInner {
+        width: 95vw;
+      }
+    }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE — Small phone ≤480px
+       ════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      body {
+        font-size: 12px;
+      }
+
+      .wrap {
+        padding: 0 14px 72px;
+      }
+
+      /* Header */
+      header {
+        padding: 18px 0 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .lm {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+
+      .lt {
+        font-size: 16px;
+      }
+
+      .badge {
+        font-size: 10px;
+        padding: 4px 10px;
+      }
+
+      /* Cards */
+      .card {
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+      }
+
+      .ch {
+        margin-bottom: 14px;
+      }
+
+      /* Inputs — 16px prevents auto-zoom on Android/iOS */
+      input[type=text],
+      input[type=password],
+      textarea {
+        font-size: 16px;
+        padding: 12px 13px;
+      }
+
+      textarea {
+        min-height: 90px;
+      }
+
+      /* Touch targets — 44px minimum */
+      .bsm,
+      .sb,
+      .mb,
+      .gal-btn,
+      .vm-close {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Segment buttons wrap and scale down */
+      .sb {
+        font-size: 10px;
+        padding: 8px 10px;
+      }
+
+      .mb {
+        font-size: 11px;
+        padding: 10px 8px;
+      }
+
+      /* Generate button */
+      .bgen {
+        font-size: 16px;
+        padding: 16px;
+        border-radius: 10px;
+      }
+
+      /* Status card */
+      .sh {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      /* Gallery — single column on small phones */
+      .gal-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .gal-info {
+        padding: 10px 12px;
+      }
+
+      .gal-prompt {
+        font-size: 11px;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+      }
+
+      .gal-meta {
+        gap: 4px;
+      }
+
+      .gal-tag {
+        font-size: 9px;
+        padding: 2px 6px;
+      }
+
+      .gal-actions {
+        gap: 5px;
+        margin-top: 8px;
+      }
+
+      .gal-btn {
+        font-size: 9px;
+        padding: 6px 6px;
+      }
+
+      /* Modal — full screen on small phone */
+      #vidModal {
+        align-items: flex-end;
+      }
+
+      #vidModalInner {
+        width: 100vw;
+        max-width: 100vw;
+        border-radius: 16px 16px 0 0;
+        max-height: 92vh;
+      }
+
+      #vidModalHeader {
+        padding: 12px 14px;
+      }
+
+      #vidModalPrompt {
+        font-size: 11px;
+      }
+
+      #vidModalVid {
+        max-height: calc(92vh - 56px);
+      }
+
+      /* History list */
+      .hl {
+        max-height: 200px;
+      }
+
+      .hi2 {
+        padding: 10px 12px;
+      }
+
+      .hp {
+        font-size: 11px;
+      }
+
+      /* Log box */
+      .logb {
+        font-size: 10px;
+        max-height: 90px;
+      }
+
+      /* Upload zone */
+      .uz {
+        padding: 20px;
+      }
+
+      /* Range slider row */
+      .sr {
+        gap: 8px;
+      }
     }
   </style>
 </head>
@@ -847,7 +1378,7 @@
     <header>
       <div class="logo">
         <div class="lm">S2</div>
-        <div class="lt">Sora 2 Studio <span>/ Local Proxy</span></div>
+        <div class="lt">Sora 2 Studio <span>/ local</span></div>
       </div>
       <div class="badge">localhost:3000</div>
     </header>
@@ -905,13 +1436,13 @@
             <label>Size</label>
             <div class="seg" id="sizeSeg">
               <button class="sb active" data-size="1280x720" onclick="pickSize(this)">1280×720 <span
-                  style="opacity:.5;font-size:10px">16:9</span></button>
+                  style="opacity:.45;font-size:10px">16:9</span></button>
               <button class="sb" data-size="720x1280" onclick="pickSize(this)">720×1280 <span
-                  style="opacity:.5;font-size:10px">9:16</span></button>
+                  style="opacity:.45;font-size:10px">9:16</span></button>
               <button class="sb" data-size="1792x1024" onclick="pickSize(this)">1792×1024 <span
-                  style="opacity:.5;font-size:10px">16:9 PRO</span></button>
+                  style="opacity:.45;font-size:10px">16:9 PRO</span></button>
               <button class="sb" data-size="1024x1792" onclick="pickSize(this)">1024×1792 <span
-                  style="opacity:.5;font-size:10px">9:16 PRO</span></button>
+                  style="opacity:.45;font-size:10px">9:16 PRO</span></button>
             </div>
           </div>
           <div class="f">
@@ -931,9 +1462,9 @@
         <div class="card">
           <div class="ch">
             <div class="ci">🖼️</div>
-            <div class="ct">Image Reference (Optional)</div>
+            <div class="ct">Image Reference</div>
           </div>
-          <p class="hint" style="margin-bottom:11px">Upload an image to use as the first frame (Image-to-Video). Image
+          <p class="hint" style="margin-bottom:12px">Upload an image to use as the first frame (Image-to-Video). Image
             dimensions should match your selected resolution.</p>
           <div class="uz" id="uZone" ondrop="onDrop(event)" ondragover="event.preventDefault()">
             <input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp" onchange="onImgSel(event)" />
@@ -968,9 +1499,9 @@
         <div class="card">
           <div class="ch">
             <div class="ci">🔄</div>
-            <div class="ct">Resume / Reload Job</div>
+            <div class="ct">Resume Job</div>
           </div>
-          <p class="hint" style="margin-bottom:11px">Paste a previous Job ID to resume polling a job from a past
+          <p class="hint" style="margin-bottom:12px">Paste a previous Job ID to resume polling a job from a past
             session.</p>
           <div class="f">
             <label>Job ID</label>
@@ -997,13 +1528,7 @@
         </div>
         <div class="sm"><span id="sMsg">Waiting…</span><span id="jLabel"></span></div>
         <div class="eb" id="errBox"></div>
-        <div class="vw" id="vidWrap">
-          <video id="vid" controls playsinline></video>
-          <div class="va">
-            <a class="ba" id="dlBtn" href="#" download="sora2.mp4">⬇ Download MP4</a>
-            <button class="ba" onclick="copyJob()">📋 Copy Job ID</button>
-          </div>
-        </div>
+        <div class="vw" id="vidWrap"></div>
         <div class="logb" id="logBox"></div>
       </div>
 
@@ -1016,7 +1541,7 @@
         <div class="hl" id="histList"></div>
       </div>
 
-      <!-- Gallery (Supabase) -->
+      <!-- Gallery -->
       <div class="card full" id="galCard">
         <div class="ch">
           <div class="ci">🎬</div>
@@ -1026,6 +1551,21 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Video Modal -->
+  <div id="vidModal" style="display:none" onclick="if(event.target===this)closeVideoModal()">
+    <div id="vidModalInner">
+      <div id="vidModalHeader">
+        <div id="vidModalPrompt"></div>
+        <div class="vm-actions">
+          <a id="vidModalDl" class="gal-btn dl-btn" href="#" download="sora2.mp4" onclick="event.stopPropagation()">⬇
+            Download</a>
+          <button class="vm-close" onclick="closeVideoModal()">✕ Close</button>
+        </div>
+      </div>
+      <video id="vidModalVid" controls playsinline></video>
     </div>
   </div>
 
@@ -1199,7 +1739,7 @@
             } else {
               curGenId = data.id || jobId; log('Video ID: ' + curGenId, 'ok');
             }
-            loadVideo(apiKey, curGenId);
+            loadVideo(curGenId);
             document.getElementById('genBtn').disabled = false;
           } else if (s === 'failed' || s === 'cancelled' || s === 'error') {
             clearInterval(timer); pollTimers.delete(timer);
@@ -1211,20 +1751,19 @@
       tick(); timer = setInterval(tick, interval); pollTimers.add(timer);
     }
 
-    async function loadVideo(apiKey, genId) {
+    async function loadVideo(genId) {
       try {
-        log('Loading video for: ' + genId);
-        setStatus('succeeded', 'Video ready — loading player…');
-        // Stream directly: set src to proxy URL so browser can play & seek without full download
-        var streamUrl = '/api/video/' + encodeURIComponent(genId) + '?key=' + encodeURIComponent(apiKey);
-        var vid = document.getElementById('vid');
-        vid.src = streamUrl;
-        document.getElementById('dlBtn').href = streamUrl;
-        document.getElementById('dlBtn').download = 'sora2.mp4';
-        document.getElementById('vidWrap').classList.add('show');
-        log('Video ready! ✓', 'ok');
-        // Reload gallery immediately + again after 5s to catch completed DB entry
-        loadGallery();
+        log('Video ready — saved to gallery ✓', 'ok');
+        setStatus('completed', 'Done! Video added to gallery ↓');
+        // Show a success callout in place of the inline video player
+        var vw = document.getElementById('vidWrap');
+        vw.innerHTML = '<div style="padding:14px 18px;background:var(--success-dim);border:1px solid rgba(126,200,154,0.2);border-radius:var(--radius);font-size:12px;color:var(--success);display:flex;align-items:center;gap:10px;">✓ Video saved — scroll down to the Gallery to view and play it</div>';
+        vw.classList.add('show');
+        // Reload gallery then scroll to it
+        await loadGallery();
+        setTimeout(function () {
+          document.getElementById('galCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 400);
         setTimeout(loadGallery, 5000);
       } catch (err) { showErr('Video error: ' + err.message); log('Video error: ' + err.message, 'err'); }
     }
@@ -1260,6 +1799,7 @@
 
     // ── Gallery (Neon PostgreSQL + local video storage) ──
     var galRefreshTimer = null;
+    var galItemsMap = {};
 
     // Poll a single item every 5s until video_url appears (after video saves to disk)
     function watchItem(id) {
@@ -1270,18 +1810,26 @@
           var item = await r.json();
           if (item.video_url) {
             clearInterval(t);
+            galItemsMap[id] = item;
             var card = document.querySelector('[data-job="' + id + '"]');
             if (card) {
               var ph = card.querySelector('.gal-pending');
               if (ph) {
+                var thumbWrap = document.createElement('div');
+                thumbWrap.className = 'gal-thumb-wrap';
                 var vid = document.createElement('video');
                 vid.className = 'gal-vid'; vid.src = item.video_url;
                 vid.muted = true; vid.setAttribute('playsinline', '');
                 vid.setAttribute('preload', 'metadata');
-                vid.onmouseenter = function () { this.play(); };
-                vid.onmouseleave = function () { this.pause(); this.currentTime = 0; };
-                ph.replaceWith(vid);
+                var playBtn = document.createElement('div');
+                playBtn.className = 'gal-play-btn';
+                playBtn.innerHTML = '<span>▶</span>';
+                thumbWrap.appendChild(vid);
+                thumbWrap.appendChild(playBtn);
+                ph.replaceWith(thumbWrap);
               }
+              card.classList.add('clickable');
+              card.onclick = function () { openVideoModal(id); };
               var actions = card.querySelector('.gal-actions');
               if (actions && !actions.querySelector('.dl-btn')) {
                 var a = document.createElement('a');
@@ -1316,22 +1864,28 @@
         grid.innerHTML = '<div class="gal-empty">No saved generations yet. Generate a video to see it here.</div>';
         return;
       }
+      // Update the global items map
+      items.forEach(function (item) { galItemsMap[item.id] = item; });
       grid.innerHTML = items.map(function (item) {
         var date = item.created_at ? new Date(item.created_at).toLocaleString() : '';
-        var hasVideo = item.video_url && item.status === 'completed';
-        var videoHtml;
+        var hasVideo = !!(item.video_url && item.status === 'completed');
+        var thumbHtml;
         if (hasVideo) {
-          videoHtml = '<video class="gal-vid" src="' + item.video_url + '" muted playsinline preload="metadata"'
-            + ' onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>';
+          thumbHtml = '<div class="gal-thumb-wrap">'
+            + '<video class="gal-vid" src="' + item.video_url + '" muted playsinline preload="metadata"></video>'
+            + '<div class="gal-play-btn"><span>▶</span></div>'
+            + '</div>';
         } else {
           var icon = item.status === 'completed' ? '💾' : item.status === 'in_progress' ? '⚙️' : '⏳';
-          videoHtml = '<div class="gal-vid gal-pending" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:11px;">'
+          thumbHtml = '<div class="gal-vid gal-pending" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:11px;">'
             + '<div style="font-size:22px">' + icon + '</div>'
             + (item.status === 'completed' ? 'Saving video…' : (item.status || 'queued'))
             + '</div>';
         }
-        return '<div class="gal-card" data-job="' + item.id + '">'
-          + videoHtml
+        var cardClick = hasVideo ? ' onclick="openVideoModal(\'' + item.id + '\')"' : '';
+        var cardClass = hasVideo ? ' clickable' : '';
+        return '<div class="gal-card' + cardClass + '" data-job="' + item.id + '"' + cardClick + '>'
+          + thumbHtml
           + '<div class="gal-info">'
           + '<div class="gal-prompt">' + (item.prompt || '') + '</div>'
           + '<div class="gal-meta">'
@@ -1349,10 +1903,37 @@
           + '</div>';
       }).join('');
 
-      // Start per-item watcher for cards that are completed but video not yet saved to disk
+      // Watch items that completed but don't have a local video file yet
       items.forEach(function (item) {
         if (item.status === 'completed' && !item.video_url) watchItem(item.id);
       });
+    }
+
+    function openVideoModal(id) {
+      var item = galItemsMap[id];
+      if (!item || !item.video_url) return;
+      var modal = document.getElementById('vidModal');
+      var vid = document.getElementById('vidModalVid');
+      document.getElementById('vidModalPrompt').textContent = item.prompt || '';
+      document.getElementById('vidModalDl').href = item.video_url;
+      vid.src = item.video_url;
+      vid.load();
+      vid.play().catch(function () { });
+      modal.style.display = 'flex';
+      document.addEventListener('keydown', handleModalKey);
+    }
+
+    function closeVideoModal() {
+      var modal = document.getElementById('vidModal');
+      var vid = document.getElementById('vidModalVid');
+      vid.pause();
+      vid.src = '';
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', handleModalKey);
+    }
+
+    function handleModalKey(e) {
+      if (e.key === 'Escape') closeVideoModal();
     }
 
     async function deleteGalItem(id) {

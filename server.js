@@ -15,6 +15,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const path = require('path');
 const db = require('./db');
 
 const app = express();
@@ -25,7 +26,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
-app.use(express.static(__dirname)); // serves index.html
+// Serve only what the browser needs — never expose .env / server.js / db.js
+app.use('/videos', express.static(path.join(__dirname, 'videos')));
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 function getApiKey(req) {
   return (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim();
@@ -238,7 +241,7 @@ app.post('/api/remix', async (req, res) => {
       prompt: body.prompt || '',
       remix_id: body.remix_id || '',
       size: body.size || '1280x720',
-      seconds: parseInt(body.seconds) || 8,
+      seconds: String(parseInt(body.seconds) || 8),
     };
     console.log(`[remix] ${payload.model} remix=${payload.remix_id} ${payload.seconds}s`);
     const response = await fetch(`${OPENAI}/v1/videos`, {
@@ -246,8 +249,9 @@ app.post('/api/remix', async (req, res) => {
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await response.json();
+    const data = await safeParseResponse(response, 'remix');
     console.log(`[remix] id=${data.id || '?'} status=${response.status}`);
+    if (!response.ok) console.log('[remix] error body:', JSON.stringify(data));
     res.status(response.status).json(data);
   } catch (err) {
     console.error('[remix error]', err.message);
@@ -267,7 +271,7 @@ app.post('/api/extend', async (req, res) => {
       prompt: body.prompt || '',
       remix_id: body.remix_id || '',
       size: body.size || '1280x720',
-      seconds: parseInt(body.seconds) || 8,
+      seconds: String(parseInt(body.seconds) || 8),
     };
     console.log(`[extend] ${payload.model} extend-from=${payload.remix_id} ${payload.seconds}s`);
     const response = await fetch(`${OPENAI}/v1/videos`, {
@@ -275,8 +279,9 @@ app.post('/api/extend', async (req, res) => {
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await response.json();
+    const data = await safeParseResponse(response, 'extend');
     console.log(`[extend] id=${data.id || '?'} status=${response.status}`);
+    if (!response.ok) console.log('[extend] error body:', JSON.stringify(data));
     res.status(response.status).json(data);
   } catch (err) {
     console.error('[extend error]', err.message);
@@ -299,7 +304,7 @@ app.get('/api/videos', async (req, res) => {
     const r = await fetch(url, {
       headers: { 'Authorization': `Bearer ${apiKey}` }
     });
-    const data = await r.json();
+    const data = await safeParseResponse(r, 'list');
     console.log(`[list] returned ${(data.data || []).length} videos`);
     res.status(r.status).json(data);
   } catch (err) {
